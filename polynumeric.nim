@@ -122,7 +122,7 @@ iterator items*(p: Poly): float =
 proc clean*(p: var Poly; zerotol = 0.0) =
   ## Removes leading zero coefficients of the polynomial.
   ## An optional tolerance can be given for what's considered zero.
-  var 
+  var
     n = p.degree
     relen = false
   while n > 0 and abs(p[n]) <= zerotol: # >0 => keep at least one coefficient
@@ -152,7 +152,7 @@ proc `$`*(p: Poly): string =
   if result == "":
     result = "0"
 
-proc derivative*(p: Poly): Poly=
+proc derivative*(p: Poly): Poly =
   ## Returns a new polynomial, which is the derivative of `p`
   newSeq[float](result.cofs, p.degree)
   for idx in 0..high(result.cofs):
@@ -223,7 +223,7 @@ proc divMod*(p, d: Poly; q, r: var Poly)=
     ratio = r.cofs[i] / d.cofs[ddeg]
     q.cofs[i-ddeg] = ratio
     r.cofs[i]=0.0
-    for j in countup(0, <ddeg):
+    for j in 0 ..< ddeg:
         var idx = i-ddeg+j
         r.cofs[idx] = r.cofs[idx] - d.cofs[j] * ratio
   r.clean # drop zero coefficients in remainder
@@ -264,7 +264,7 @@ proc `*` *(f: float, p: Poly): Poly =
 proc `-`*(p: Poly): Poly =
   ## Negates a polynomial
   result = p
-  for i in countup(0, <result.cofs.len):
+  for i in 0 ..< result.cofs.len:
     result.cofs[i] = -result.cofs[i]
 
 proc `-`*(p1, p2: Poly): Poly=
@@ -327,7 +327,7 @@ proc getRangeForRoots(p: Poly): tuple[xmin, xmax:float] =
   ## quickly computes a range, guaranteed to contain
   ## all the real roots of the polynomial
   # see http://www.mathsisfun.com/algebra/polynomials-bounds-zeros.html
-  var 
+  var
     deg = p.degree
     d = p[deg]
     bound1, bound2: float
@@ -340,7 +340,7 @@ proc getRangeForRoots(p: Poly): tuple[xmin, xmax:float] =
   result.xmin = -result.xmax
 
 proc addRoot(p: Poly, res: var seq[float], xp0, xp1, tol, zerotol, mergetol: float, maxiter: int)=
-  ## helper function for `roots` function. Try to do a numeric search for a single root 
+  ## helper function for `roots` function. Try to do a numeric search for a single root
   ## in range xp0-xp1, adding it to `res` (allocating `res` if nil)
   var br = brent(xp0, xp1, proc(x: float): float = p.eval(x), tol)
   if br.success:
@@ -376,7 +376,7 @@ proc roots*(p: Poly, tol=1.0e-9, zerotol=1.0e-6, mergetol=1.0e-12, maxiter=1000)
     var rng = p.getRangeForRoots()
     var minmax = p.derivative.roots(tol, zerotol, mergetol)
     result= @[]
-    if not minmax.is_nil: #ie. we have minimas/maximas in this function
+    if minmax.len > 0: #ie. we have minimas/maximas in this function
       for x in minmax.items:
         addRoot(p,result, rng.xmin, x, tol, zerotol, mergetol, maxiter)
         rng.xmin = x
