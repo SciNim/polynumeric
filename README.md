@@ -1,1 +1,0 @@
-Polynomial operations for Nim

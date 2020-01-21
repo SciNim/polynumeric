@@ -1,0 +1,10 @@
+* Polynumeric
+
+A simple library to handle polynomials. Allows to calculate the
+derivatives, roots etc.
+
+Apparently it was part of the Nim stdlib years ago and then lived on
+with @lcrees here:
+https://github.com/lcrees/polynumeric
+for a time.
+
