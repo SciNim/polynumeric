@@ -1,3 +1,5 @@
+import math
+
 type
   TwoVarFunction* = proc (x, y: float): float
 
@@ -13,11 +15,15 @@ proc eval*(p: Poly2d, args: tuple[x, y: float]): float =
   ## Evaluates a polynomial function value for `x`
   ## quickly using Horners method
   var n = p.degree
-  result = p.coefs[n].x * p.coefs[n].y
-  dec n
-  while n >= 0:
-    result = result * args.x * args.y + p.coefs[n].x*p.coefs[n].y
-    dec n
+  result = 0.0
+  for i in countdown[int](n, 0):
+    for j in countdown[int](n, 0):
+      echo (i, j)
+      let tmp = pow(args.x, i.toFloat) * p.coefs[i].x * pow(args.y, j.toFloat) * p.coefs[j].y
+      result += tmp
+
+proc eval*(p: Poly2d, x, y: float): float =
+  p.eval((x: x, y: y))
 
 proc `[]` *(p: Poly2d, idx: int): tuple[x, y: float] =
   ## Gets a coefficient of the polynomial.
