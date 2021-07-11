@@ -385,6 +385,11 @@ proc roots*(p: Poly, tol=1.0e-9, zerotol=1.0e-6, mergetol=1.0e-12, maxiter=1000)
 # imported here as it's ``only`` used for the fit
 import arraymancer / [tensor, linear_algebra]
 proc polyFit*[T: seq[float] | Tensor[float]](x, y: T, polyOrder: int): Tensor[float] =
+  ## Performs a linear least squares fit to the data x and y with a polynomial
+  ## of order `polyOrder`.
+  ##
+  ## NOTE: As it uses LAPACK's least squares solver, it does depend on LAPACK!
+  ## See the arraymancer README for the correct compilation flags for your system.
   when T is seq[float]:
     let x = x.toTensor
     let y = y.toTensor
