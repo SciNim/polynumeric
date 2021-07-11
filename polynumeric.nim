@@ -381,3 +381,19 @@ proc roots*(p: Poly, tol=1.0e-9, zerotol=1.0e-6, mergetol=1.0e-12, maxiter=1000)
         addRoot(p,result, rng.xmin, x, tol, zerotol, mergetol, maxiter)
         rng.xmin = x
     addRoot(p, result, rng.xmin, rng.xmax, tol, zerotol, mergetol, maxiter)
+
+# imported here as it's ``only`` used for the fit
+import arraymancer / [tensor, linear_algebra]
+proc polyFit*[T: seq[float] | Tensor[float]](x, y: T, polyOrder: int): Tensor[float] =
+  when T is seq[float]:
+    let x = x.toTensor
+    let y = y.toTensor
+
+  # actual poly order is + 1, because `0` corresponds to polynomial of order 0, a constant
+  var A = vandermonde(x, polyOrder + 1)
+  # scale lhs to improve condition number and solve
+  let scale = sqrt((A *. A).sum(axis = 0))
+  A = A /. scale
+  var (coeffs, resids, rank, s) = least_squares_solver(A, y)
+  coeffs = (coeffs /. scale.squeeze)  # broadcast scale coefficients
+  result = coeffs
