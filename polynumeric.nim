@@ -1,16 +1,18 @@
 ## (c) Copyright 2013 Robert Persson
 
-import math
-import strutils
+import std/math
+import std/strutils
+
+import ./polynumeric/poly2d
 
 type
   OneVarFunction* = proc (x: float): float
 
   Poly* = object
-    cofs: seq[float]
+    coefs: seq[float]
 
-proc brent*(xmin, xmax: float, fn: OneVarFunction, tol:float, maxiter=1000):
-  tuple[rootx, rooty: float, success: bool]=
+proc brent*(xmin, xmax: float, fn: OneVarFunction, tol: float, maxiter = 1000):
+  tuple[rootx, rooty: float, success: bool] =
   ## Searches `fn` for a root between `xmin` and `xmax`
   ## using brents method. If the fn value at `xmin`and `xmax` has the
   ## same sign, `rootx`/`rooty` is set too the extrema value closest to x-axis
@@ -33,8 +35,8 @@ proc brent*(xmin, xmax: float, fn: OneVarFunction, tol:float, maxiter=1000):
     mflag: bool
     i = 0
     tmp2: float
-  if fa*fb>=0:
-    if abs(fa)<abs(fb):
+  if fa*fb >= 0:
+    if abs(fa) < abs(fb):
       return (a, fa, false)
     else:
       return (b, fb, false)
@@ -50,8 +52,8 @@ proc brent*(xmin, xmax: float, fn: OneVarFunction, tol:float, maxiter=1000):
     if not((s > tmp2 and s < b) or (s < tmp2 and s > b)) or
       (mflag and abs(s - b) >= (abs(b - c) / 2.0)) or
       (not mflag and abs(s - b) >= abs(c - d) / 2.0):
-      s=(a+b)/2.0
-      mflag=true
+      s = (a+b)/2.0
+      mflag = true
     else:
       if (mflag and (abs(b - c) < tol)) or (not mflag and (abs(c - d) < tol)):
         s = (a+b) / 2.0
@@ -62,13 +64,13 @@ proc brent*(xmin, xmax: float, fn: OneVarFunction, tol:float, maxiter=1000):
     d = c
     c = b
     fc = fb
-    if fa * fs<0.0:
+    if fa * fs < 0.0:
       b = s
       fb = fs
     else:
-      a=s
-      fa=fs
-    if abs(fa)<abs(fb):
+      a = s
+      fa = fs
+    if abs(fa) < abs(fb):
       swap(a, b)
       swap(fa, fb)
     inc i
@@ -76,41 +78,41 @@ proc brent*(xmin, xmax: float, fn: OneVarFunction, tol:float, maxiter=1000):
       break
   return (b, fb, true)
 
-proc degree*(p: Poly):int=
+proc degree*(p: Poly): int =
   ## Returns the degree of the polynomial,
   ## that is the number of coefficients-1
-  return p.cofs.len - 1
+  return p.coefs.len - 1
 
-proc eval*(p: Poly,x:float):float=
+proc eval*(p: Poly, x: float): float =
   ## Evaluates a polynomial function value for `x`
   ## quickly using Horners method
   var n = p.degree
-  result = p.cofs[n]
+  result = p.coefs[n]
   dec n
   while n >= 0:
-    result = result * x + p.cofs[n]
+    result = result * x + p.coefs[n]
     dec n
 
-proc `[]` *(p: Poly;idx:int):float=
+proc `[]` *(p: Poly; idx: int): float =
   ## Gets a coefficient of the polynomial.
   ## p[2] will returns the quadric term, p[3] the cubic etc.
   ## Out of bounds index will return 0.0.
-  if idx<0 or idx>p.degree:
+  if idx < 0 or idx > p.degree:
     return 0.0
-  return p.cofs[idx]
+  return p.coefs[idx]
 
-proc `[]=` *(p:var Poly;idx:int,v:float)=
+proc `[]=` *(p: var Poly; idx: int, v: float) =
   ## Sets an coefficient of the polynomial by index.
   ## p[2] set the quadric term, p[3] the cubic etc.
   ## If index is out of range for the coefficients,
   ## the polynomial grows to the smallest needed degree.
   assert(idx >= 0)
-  if idx > p.degree:  #polynomial must grow
-    var oldlen = p.cofs.len
-    p.cofs.setLen(idx + 1)
-    for q in oldlen..<high(p.cofs):
-      p.cofs[q] = 0.0 #new-grown coefficients set to zero
-  p.cofs[idx]=v
+  if idx > p.degree: #polynomial must grow
+    var oldlen = p.coefs.len
+    p.coefs.setLen(idx + 1)
+    for q in oldlen..<high(p.coefs):
+      p.coefs[q] = 0.0 #new-grown coefficients set to zero
+  p.coefs[idx] = v
 
 iterator items*(p: Poly): float =
   ## Iterates through the coefficients of the polynomial.
@@ -128,7 +130,7 @@ proc clean*(p: var Poly; zerotol = 0.0) =
   while n > 0 and abs(p[n]) <= zerotol: # >0 => keep at least one coefficient
     dec n
     relen = true
-  if relen: p.cofs.setLen(n + 1)
+  if relen: p.coefs.setLen(n + 1)
 
 proc `$`*(p: Poly): string =
   ## Gets a somewhat reasonable string representation of the polynomial
@@ -154,11 +156,11 @@ proc `$`*(p: Poly): string =
 
 proc derivative*(p: Poly): Poly =
   ## Returns a new polynomial, which is the derivative of `p`
-  newSeq[float](result.cofs, p.degree)
-  for idx in 0..high(result.cofs):
-    result.cofs[idx] = p.cofs[idx + 1] * float(idx + 1)
+  newSeq[float](result.coefs, p.degree)
+  for idx in 0..high(result.coefs):
+    result.coefs[idx] = p.coefs[idx + 1] * float(idx + 1)
 
-proc diff*(p: Poly, x: float):float=
+proc diff*(p: Poly, x: float): float =
   ## Evaluates the differentiation of a polynomial with
   ## respect to `x` quickly using a modifed Horners method
   var n = p.degree
@@ -171,12 +173,12 @@ proc diff*(p: Poly, x: float):float=
 proc integral*(p: Poly): Poly =
   ## Returns a new polynomial which is the indefinite
   ## integral of `p`. The constant term is set to 0.0
-  newSeq(result.cofs, p.cofs.len + 1)
-  result.cofs[0] = 0.0  #constant arbitrary term, use 0.0
-  for i in 1..high(result.cofs):
-    result.cofs[i] = p.cofs[i-1] / float(i)
+  newSeq(result.coefs, p.coefs.len + 1)
+  result.coefs[0] = 0.0 #constant arbitrary term, use 0.0
+  for i in 1..high(result.coefs):
+    result.coefs[i] = p.coefs[i-1] / float(i)
 
-proc integrate*(p: Poly; xmin, xmax:float):float=
+proc integrate*(p: Poly; xmin, xmax: float): float =
   ## Computes the definite integral of `p` between `xmin` and `xmax`
   ## quickly using a modified version of Horners method
   var
@@ -185,28 +187,28 @@ proc integrate*(p: Poly; xmin, xmax:float):float=
     s2 = s1
     fac: float
   dec n
-  while n>=0:
+  while n >= 0:
     fac = p[n] / float(n + 1)
     s1 = s1 * xmin + fac
     s2 = s2 * xmax + fac
     dec n
   result = s2 * xmax - s1 * xmin
 
-proc initPoly*(cofs:varargs[float]): Poly =
+proc initPoly*(cofs: varargs[float]): Poly =
   ## Initializes a polynomial with given coefficients.
   ## The most significant coefficient is first, so to create x^2-2x+3:
   ## intiPoly(1.0,-2.0,3.0)
   if len(cofs) <= 0:
-    result.cofs = @[0.0]  #need at least one coefficient
+    result.coefs = @[0.0] #need at least one coefficient
   else:
     # reverse order of coefficients so indexing matches degree of
     # coefficient...
-    result.cofs = @[]
+    result.coefs = @[]
     for idx in countdown(cofs.len-1, 0):
-      result.cofs.add(cofs[idx])
+      result.coefs.add(cofs[idx])
   result.clean #remove leading zero terms
 
-proc divMod*(p, d: Poly; q, r: var Poly)=
+proc divMod*(p, d: Poly; q, r: var Poly) =
   ## Divides `p` with `d`, and stores the quotinent in `q` and
   ## the remainder in `d`
   var
@@ -214,24 +216,24 @@ proc divMod*(p, d: Poly; q, r: var Poly)=
     ddeg = d.degree
     power = p.degree - d.degree
     ratio: float
-  r.cofs = p.cofs #initial remainder=numerator
+  r.coefs = p.coefs #initial remainder=numerator
   if power < 0: #denominator is larger than numerator
-    q.cofs = @[0.0] #quotinent is 0.0
+    q.coefs = @[0.0] #quotinent is 0.0
     return # keep remainder as numerator
-  q.cofs = newSeq[float](power + 1)
+  q.coefs = newSeq[float](power + 1)
   for i in countdown(pdeg, ddeg):
-    ratio = r.cofs[i] / d.cofs[ddeg]
-    q.cofs[i-ddeg] = ratio
-    r.cofs[i]=0.0
+    ratio = r.coefs[i] / d.coefs[ddeg]
+    q.coefs[i-ddeg] = ratio
+    r.coefs[i] = 0.0
     for j in 0 ..< ddeg:
-        var idx = i-ddeg+j
-        r.cofs[idx] = r.cofs[idx] - d.cofs[j] * ratio
+      var idx = i-ddeg+j
+      r.coefs[idx] = r.coefs[idx] - d.coefs[j] * ratio
   r.clean # drop zero coefficients in remainder
 
-proc `+` *(p1:Poly,p2:Poly): Poly =
+proc `+` *(p1: Poly, p2: Poly): Poly =
   ## Adds two polynomials
-  var n = max(p1.cofs.len, p2.cofs.len)
-  newSeq(result.cofs, n)
+  var n = max(p1.coefs.len, p2.coefs.len)
+  newSeq(result.coefs, n)
   for idx in countup(0, n - 1):
     result[idx] = p1[idx] + p2[idx]
   result.clean # drop zero coefficients in remainder
@@ -241,9 +243,9 @@ proc `*` *(p1, p2: Poly): Poly =
   var
     d1 = p1.degree
     d2 = p2.degree
-    n= d1 + d2
+    n = d1 + d2
     idx: int
-  newSeq(result.cofs, n)
+  newSeq(result.coefs, n)
   for i1 in countup(0, 1):
     for i2 in countup(0, d2):
       idx = i1 + i2
@@ -252,9 +254,9 @@ proc `*` *(p1, p2: Poly): Poly =
 
 proc `*` *(p: Poly, f: float): Poly =
   ## Multiplies the polynomial `p` with a real number
-  newSeq(result.cofs, p.cofs.len)
-  for i in 0..high(p.cofs):
-    result[i] = p.cofs[i] * f
+  newSeq(result.coefs, p.coefs.len)
+  for i in 0..high(p.coefs):
+    result[i] = p.coefs[i] * f
   result.clean
 
 proc `*` *(f: float, p: Poly): Poly =
@@ -264,22 +266,22 @@ proc `*` *(f: float, p: Poly): Poly =
 proc `-`*(p: Poly): Poly =
   ## Negates a polynomial
   result = p
-  for i in 0 ..< result.cofs.len:
-    result.cofs[i] = -result.cofs[i]
+  for i in 0 ..< result.coefs.len:
+    result.coefs[i] = -result.coefs[i]
 
-proc `-`*(p1, p2: Poly): Poly=
+proc `-`*(p1, p2: Poly): Poly =
   ## Subtract `p1` with `p2`
-  var n=max(p1.cofs.len, p2.cofs.len)
-  newSeq(result.cofs, n)
+  var n = max(p1.coefs.len, p2.coefs.len)
+  newSeq(result.coefs, n)
   for idx in countup(0, n-1):
     result[idx] = p1[idx] - p2[idx]
   result.clean # drop zero coefficients in remainder
 
-proc `/`*(p: Poly, f: float): Poly=
+proc `/`*(p: Poly, f: float): Poly =
   ## Divides polynomial `p` with a real number `f`
-  newSeq(result.cofs, p.cofs.len)
-  for i in 0..high(p.cofs):
-    result[i] = p.cofs[i] / f
+  newSeq(result.coefs, p.coefs.len)
+  for i in 0..high(p.coefs):
+    result[i] = p.coefs[i] / f
   result.clean
 
 proc `/` *(p, q: Poly): Poly =
@@ -287,7 +289,7 @@ proc `/` *(p, q: Poly): Poly =
   var dummy: Poly
   p.divMod(q, result, dummy)
 
-proc `mod` *(p,q:Poly): Poly =
+proc `mod` *(p, q: Poly): Poly =
   ## Computes the polynomial modulo operation,
   ## that is the remainder of `p`/`q`
   var dummy: Poly
@@ -300,12 +302,12 @@ proc normalize*(p: var Poly) =
   ## if the leading term is zero.
   p = p / p[p.degree]
 
-proc solveQuadric*(a,b,c:float;zerotol=0.0):seq[float]=
+proc solveQuadric*(a, b, c: float; zerotol = 0.0): seq[float] =
   ## Solves the quadric equation `ax^2+bx+c`, with a possible
   ## tolerance `zerotol` to find roots of curves just 'touching'
   ## the x axis. Returns sequence with 0,1 or 2 solutions.
   var p, q, d: float
-  p= b / (2.0 * a)
+  p = b / (2.0 * a)
   if p == Inf or p == NegInf: #linear equation..
     var linrt = -c/b
     if linrt == Inf or linrt == NegInf: #constant only
@@ -322,7 +324,7 @@ proc solveQuadric*(a,b,c:float;zerotol=0.0):seq[float]=
     var sr = sqrt(d)
     result = @[-sr-p, sr-p]
 
-proc getRangeForRoots(p: Poly): tuple[xmin, xmax:float] =
+proc getRangeForRoots(p: Poly): tuple[xmin, xmax: float] =
   ## helper function for `roots` function
   ## quickly computes a range, guaranteed to contain
   ## all the real roots of the polynomial
@@ -332,14 +334,14 @@ proc getRangeForRoots(p: Poly): tuple[xmin, xmax:float] =
     d = p[deg]
     bound1, bound2: float
   for i in countup(0, deg):
-    var c = abs(p.cofs[i] / d)
-    bound1 = max(bound1,c+1.0)
+    var c = abs(p.coefs[i] / d)
+    bound1 = max(bound1, c+1.0)
     bound2 = bound2+c
   bound2 = max(1.0, bound2)
   result.xmax = min(bound1, bound2)
   result.xmin = -result.xmax
 
-proc addRoot(p: Poly, res: var seq[float], xp0, xp1, tol, zerotol, mergetol: float, maxiter: int)=
+proc addRoot(p: Poly, res: var seq[float], xp0, xp1, tol, zerotol, mergetol: float, maxiter: int) =
   ## helper function for `roots` function. Try to do a numeric search for a single root
   ## in range xp0-xp1, adding it to `res` (allocating `res` if nil)
   var br = brent(xp0, xp1, proc(x: float): float = p.eval(x), tol)
@@ -352,7 +354,7 @@ proc addRoot(p: Poly, res: var seq[float], xp0, xp1, tol, zerotol, mergetol: flo
       if res.len == 0 or br.rootx >= res[high(res)] + mergetol: # don't add equal roots.
         res.add(br.rootx)
 
-proc roots*(p: Poly, tol=1.0e-9, zerotol=1.0e-6, mergetol=1.0e-12, maxiter=1000): seq[float] =
+proc roots*(p: Poly, tol = 1.0e-9, zerotol = 1.0e-6, mergetol = 1.0e-12, maxiter = 1000): seq[float] =
   ## Computes the real roots of the polynomial `p`
   ## `tol` is the tolerance used to break searching for each root when reached.
   ## `zerotol` is the tolerance, which is 'close enough' to zero to be considered a root
@@ -364,21 +366,21 @@ proc roots*(p: Poly, tol=1.0e-9, zerotol=1.0e-6, mergetol=1.0e-12, maxiter=1000)
   if deg <= 0: #constant only => no roots
     return @[]
   elif p.degree == 1: #linear
-    var linrt= -p.cofs[0] / p.cofs[1]
+    var linrt = -p.coefs[0] / p.coefs[1]
     if linrt == Inf or linrt == NegInf:
       return @[] #constant only => no roots
     return @[linrt]
-  elif p.degree==2:
-    return solveQuadric(p.cofs[2], p.cofs[1], p.cofs[0], zerotol)
+  elif p.degree == 2:
+    return solveQuadric(p.coefs[2], p.coefs[1], p.coefs[0], zerotol)
   else:
     # degree >=3 , find min/max points of polynomial with recursive
     # derivative and do a numerical search for root between each min/max
     var rng = p.getRangeForRoots()
     var minmax = p.derivative.roots(tol, zerotol, mergetol)
-    result= @[]
+    result = @[]
     if minmax.len > 0: #ie. we have minimas/maximas in this function
       for x in minmax.items:
-        addRoot(p,result, rng.xmin, x, tol, zerotol, mergetol, maxiter)
+        addRoot(p, result, rng.xmin, x, tol, zerotol, mergetol, maxiter)
         rng.xmin = x
     addRoot(p, result, rng.xmin, rng.xmax, tol, zerotol, mergetol, maxiter)
 
